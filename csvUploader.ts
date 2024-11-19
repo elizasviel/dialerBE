@@ -3,14 +3,8 @@ import express from "express";
 import multer from "multer";
 import { parse } from "csv-parse";
 import { Readable } from "stream";
-import {
-  makeCall,
-  uploadRecording,
-  listRecordings,
-  deleteRecording,
-  setActiveRecording,
-} from "./twilioService";
-
+import { makeCall } from "./twilioService";
+import twilio from "twilio";
 const router = express.Router();
 const prisma = new PrismaClient();
 const upload = multer({
@@ -23,6 +17,11 @@ interface BusinessRow {
   name: string;
   phone: string;
   callNotes: string;
+}
+
+interface SpeechResult {
+  confidence: number;
+  transcript: string;
 }
 
 const validatePhone = (phone: string): boolean => {
@@ -38,6 +37,23 @@ const validateRow = (row: BusinessRow): string | null => {
     return "Invalid phone number format";
   }
   return null;
+};
+
+const analyzeSpeechResponse = (transcript: string) => {
+  const hasDiscount = /yes|yeah|we do|correct/i.test(transcript);
+  const percentageMatch = transcript.match(/(\d+)(?:\s*%|\s*percent)/);
+  const discountAmount = percentageMatch ? percentageMatch[1] + "%" : null;
+
+  const activeDutyOnly = /active\s*duty\s*only/i.test(transcript);
+  const availabilityInfo = transcript.match(/available\s*([\w\s,]+)(?=\.|$)/i);
+
+  return {
+    hasDiscount,
+    discountAmount,
+    discountDetails: `${activeDutyOnly ? "Active duty only. " : ""}${
+      availabilityInfo ? `Available ${availabilityInfo[1]}` : ""
+    }`.trim(),
+  };
 };
 
 router.post(
@@ -185,66 +201,58 @@ router.post("/call-all", async (_req, res) => {
   }
 });
 
-router.post(
-  "/upload-recording",
-  upload.single("file"),
-  async (req: any, res: any) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
+router.post("/call-handler", async (req: any, res: any) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  const speechResult = req.body.SpeechResult as string;
+  const phoneNumber = req.body.To; // The called phone number
 
-      const filename = req.body.filename || req.file.originalname;
-      const result = await uploadRecording(req.file.buffer, filename);
-      res.json({
-        message: "Recording uploaded successfully",
-        ...result,
-      });
-    } catch (error) {
-      console.error("Error uploading recording:", error);
-      res.status(500).json({
-        error: "Failed to upload recording",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+  if (!speechResult) {
+    twiml.say("I'm sorry, I didn't catch that. Thank you for your time.");
+    twiml.hangup();
+    return res.type("text/xml").send(twiml.toString());
+  }
+
+  const analysis = analyzeSpeechResponse(speechResult);
+
+  try {
+    // First find the business
+    const business = await prisma.business.findFirst({
+      where: {
+        phone: phoneNumber,
+      },
+    });
+
+    if (!business) {
+      console.error(`No business found with phone number: ${phoneNumber}`);
+      twiml.say("Thank you for your time. Goodbye!");
+      twiml.hangup();
+      return res.type("text/xml").send(twiml.toString());
     }
-  }
-);
 
-router.get("/assets", async (_req, res) => {
-  try {
-    const assets = await listRecordings();
-    res.json(assets);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch assets",
-      details: error instanceof Error ? error.message : "Unknown error",
+    // Then update it
+    await prisma.business.update({
+      where: { id: business.id },
+      data: {
+        hasDiscount: analysis.hasDiscount,
+        discountAmount: analysis.discountAmount,
+        discountDetails: analysis.discountDetails,
+        lastCalled: new Date(),
+        callStatus: "completed",
+        callNotes: speechResult,
+      },
     });
-  }
-});
 
-router.delete("/assets/:assetSid", async (req, res) => {
-  try {
-    await deleteRecording(req.params.assetSid);
-    res.json({ message: "Asset deleted successfully" });
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to delete asset",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+    twiml.say("Thank you for the information. Have a great day!");
+    twiml.hangup();
 
-router.post("/assets/set-active/:key", async (req, res) => {
-  try {
-    const key = decodeURIComponent(req.params.key);
-    await setActiveRecording(key);
-    res.json({ message: "Active recording set successfully" });
+    return res.type("text/xml").send(twiml.toString());
   } catch (error) {
-    console.error("Error setting active recording:", error);
-    res.status(500).json({
-      error: "Failed to set active recording",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error("Error updating business record:", error);
+    twiml.say(
+      "I apologize for the technical difficulty. Thank you for your time."
+    );
+    twiml.hangup();
+    return res.type("text/xml").send(twiml.toString());
   }
 });
 
