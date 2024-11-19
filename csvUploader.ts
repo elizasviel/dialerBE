@@ -8,6 +8,7 @@ import {
   uploadRecording,
   listRecordings,
   deleteRecording,
+  setActiveRecording,
 } from "./twilioService";
 
 const router = express.Router();
@@ -193,10 +194,11 @@ router.post(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const assetSid = await uploadRecording(req.file.buffer);
+      const filename = req.body.filename || req.file.originalname;
+      const result = await uploadRecording(req.file.buffer, filename);
       res.json({
         message: "Recording uploaded successfully",
-        assetSid,
+        ...result,
       });
     } catch (error) {
       console.error("Error uploading recording:", error);
@@ -227,6 +229,20 @@ router.delete("/assets/:assetSid", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: "Failed to delete asset",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.post("/assets/set-active/:key", async (req, res) => {
+  try {
+    const key = decodeURIComponent(req.params.key);
+    await setActiveRecording(key);
+    res.json({ message: "Active recording set successfully" });
+  } catch (error) {
+    console.error("Error setting active recording:", error);
+    res.status(500).json({
+      error: "Failed to set active recording",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }

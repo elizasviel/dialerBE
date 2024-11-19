@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  CopyObjectCommand,
 } from "@aws-sdk/client-s3";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -41,18 +42,20 @@ export async function makeCall(phoneNumber: string): Promise<string> {
   }
 }
 
-export async function uploadRecording(audioBuffer: Buffer) {
+export async function uploadRecording(audioBuffer: Buffer, filename: string) {
   try {
+    const timestamp = new Date().getTime();
+    const key = `recordings/${timestamp}-${filename}`;
     const params = {
       Bucket: BUCKET_NAME,
-      Key: "current-greeting.mp3",
+      Key: key,
       Body: audioBuffer,
       ContentType: "audio/mpeg",
     };
 
     await s3Client.send(new PutObjectCommand(params));
-    const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/current-greeting.mp3`;
-    return fileUrl;
+    const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+    return { url: fileUrl, key };
   } catch (error) {
     console.error("Error uploading recording to S3:", error);
     throw error;
@@ -71,9 +74,10 @@ export async function listRecordings() {
 
     return (
       response.Contents?.map((object) => ({
-        key: object.Key,
+        key: object.Key || "",
         url: `https://${BUCKET_NAME}.s3.amazonaws.com/${object.Key}`,
         lastModified: object.LastModified,
+        filename: object.Key?.split("/").pop() || "",
       })) || []
     );
   } catch (error) {
@@ -93,6 +97,23 @@ export async function deleteRecording(key: string) {
     return true;
   } catch (error) {
     console.error("Error deleting S3 recording:", error);
+    throw error;
+  }
+}
+
+export async function setActiveRecording(key: string) {
+  try {
+    await s3Client.send(
+      new CopyObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: "current-greeting.mp3",
+        CopySource: `${BUCKET_NAME}/${key}`,
+        ContentType: "audio/mpeg",
+      })
+    );
+    return true;
+  } catch (error) {
+    console.error("Error setting active recording:", error);
     throw error;
   }
 }
