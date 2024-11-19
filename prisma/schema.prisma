@@ -14,8 +14,8 @@ datasource db {
 }
 
 model Business {
-  id          String  @id @default(cuid())
-  name        String
-  phone       String
-  hasDiscount Boolean @default(false)
+  id        String @id @default(cuid())
+  name      String
+  phone     String
+  callNotes String
 }

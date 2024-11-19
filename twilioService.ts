@@ -1,11 +1,26 @@
 import twilio from "twilio";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER as string;
-const twilioFunctionUrl = process.env.TWILIO_FUNCTION_URL as string;
 
-if (!accountSid || !authToken || !twilioPhoneNumber || !twilioFunctionUrl) {
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION as string,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+  },
+});
+
+const BUCKET_NAME = process.env.S3_BUCKET_NAME as string;
+
+if (!accountSid || !authToken || !twilioPhoneNumber) {
   throw new Error("Missing required Twilio environment variables");
 }
 
@@ -13,8 +28,9 @@ const client = twilio(accountSid, authToken);
 
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
+    const currentRecordingUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/current-greeting.mp3`;
     const call = await client.calls.create({
-      url: twilioFunctionUrl,
+      twiml: `<Response><Play>${currentRecordingUrl}</Play></Response>`,
       to: phoneNumber,
       from: twilioPhoneNumber,
     });
@@ -27,41 +43,56 @@ export async function makeCall(phoneNumber: string): Promise<string> {
 
 export async function uploadRecording(audioBuffer: Buffer) {
   try {
-    // First, create the Asset
-    const asset = await client.serverless.v1
-      .services(process.env.TWILIO_SERVICE_SID as string)
-      .assets.create({ friendlyName: "custom-greeting" });
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: "current-greeting.mp3",
+      Body: audioBuffer,
+      ContentType: "audio/mpeg",
+    };
 
-    console.log("Asset created:", asset);
+    await s3Client.send(new PutObjectCommand(params));
+    const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/current-greeting.mp3`;
+    return fileUrl;
   } catch (error) {
-    console.error("Error uploading recording to Twilio:", error);
+    console.error("Error uploading recording to S3:", error);
     throw error;
   }
 }
 
-export async function listAssets() {
+// Optional: If you want to keep track of multiple recordings
+export async function listRecordings() {
   try {
-    const assets = await client.serverless.v1
-      .services(process.env.TWILIO_SERVICE_SID as string)
-      .assets.list();
+    const response = await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET_NAME,
+        Prefix: "recordings/",
+      })
+    );
 
-    return assets;
+    return (
+      response.Contents?.map((object) => ({
+        key: object.Key,
+        url: `https://${BUCKET_NAME}.s3.amazonaws.com/${object.Key}`,
+        lastModified: object.LastModified,
+      })) || []
+    );
   } catch (error) {
-    console.error("Error listing Twilio assets:", error);
+    console.error("Error listing S3 recordings:", error);
     throw error;
   }
 }
 
-export async function deleteAsset(assetSid: string) {
+export async function deleteRecording(key: string) {
   try {
-    await client.serverless.v1
-      .services(process.env.TWILIO_SERVICE_SID as string)
-      .assets(assetSid)
-      .remove();
-
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+      })
+    );
     return true;
   } catch (error) {
-    console.error("Error deleting Twilio asset:", error);
+    console.error("Error deleting S3 recording:", error);
     throw error;
   }
 }

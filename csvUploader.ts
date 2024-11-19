@@ -6,8 +6,8 @@ import { Readable } from "stream";
 import {
   makeCall,
   uploadRecording,
-  listAssets,
-  deleteAsset,
+  listRecordings,
+  deleteRecording,
 } from "./twilioService";
 
 const router = express.Router();
@@ -21,7 +21,7 @@ const upload = multer({
 interface BusinessRow {
   name: string;
   phone: string;
-  hasDiscount: string;
+  callNotes: string;
 }
 
 const validatePhone = (phone: string): boolean => {
@@ -35,9 +35,6 @@ const validateRow = (row: BusinessRow): string | null => {
   }
   if (!validatePhone(row.phone)) {
     return "Invalid phone number format";
-  }
-  if (!["true", "false"].includes(row.hasDiscount.toLowerCase())) {
-    return "hasDiscount must be true or false";
   }
   return null;
 };
@@ -89,7 +86,7 @@ router.post(
         data: records.map((record) => ({
           name: record.name.trim(),
           phone: record.phone.trim(),
-          hasDiscount: record.hasDiscount.toLowerCase() === "true",
+          callNotes: "",
         })),
         skipDuplicates: true,
       });
@@ -141,13 +138,12 @@ router.get("/export-csv", async (_req, res) => {
     });
 
     // Create CSV header
-    const csvHeader = "name,phone,hasDiscount\n";
+    const csvHeader = "name,phone,callNotes\n";
 
     // Convert businesses to CSV rows
     const csvRows = businesses
       .map(
-        (business) =>
-          `${business.name},${business.phone},${business.hasDiscount}`
+        (business) => `${business.name},${business.phone},${business.callNotes}`
       )
       .join("\n");
 
@@ -214,7 +210,7 @@ router.post(
 
 router.get("/assets", async (_req, res) => {
   try {
-    const assets = await listAssets();
+    const assets = await listRecordings();
     res.json(assets);
   } catch (error) {
     res.status(500).json({
@@ -226,7 +222,7 @@ router.get("/assets", async (_req, res) => {
 
 router.delete("/assets/:assetSid", async (req, res) => {
   try {
-    await deleteAsset(req.params.assetSid);
+    await deleteRecording(req.params.assetSid);
     res.json({ message: "Asset deleted successfully" });
   } catch (error) {
     res.status(500).json({
