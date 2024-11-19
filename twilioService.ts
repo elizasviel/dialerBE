@@ -30,8 +30,13 @@ const client = twilio(accountSid, authToken);
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
     const currentRecordingUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/current-greeting.mp3`;
+    console.log("Current recording URL:", currentRecordingUrl);
     const call = await client.calls.create({
-      twiml: `<Response><Play>${currentRecordingUrl}</Play></Response>`,
+      // Use proper XML escaping and ensure HTTPS
+      twiml: `<?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+          <Play>${currentRecordingUrl}</Play>
+        </Response>`,
       to: phoneNumber,
       from: twilioPhoneNumber,
     });
