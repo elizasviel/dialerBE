@@ -3,7 +3,12 @@ import express from "express";
 import multer from "multer";
 import { parse } from "csv-parse";
 import { Readable } from "stream";
-import { makeCall } from "./twilioService";
+import {
+  makeCall,
+  uploadRecording,
+  listAssets,
+  deleteAsset,
+} from "./twilioService";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -178,6 +183,54 @@ router.post("/call-all", async (_req, res) => {
     console.error("Error initiating calls:", error);
     res.status(500).json({
       error: "Failed to initiate calls",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.post(
+  "/upload-recording",
+  upload.single("file"),
+  async (req: any, res: any) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const assetSid = await uploadRecording(req.file.buffer);
+      res.json({
+        message: "Recording uploaded successfully",
+        assetSid,
+      });
+    } catch (error) {
+      console.error("Error uploading recording:", error);
+      res.status(500).json({
+        error: "Failed to upload recording",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+router.get("/assets", async (_req, res) => {
+  try {
+    const assets = await listAssets();
+    res.json(assets);
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch assets",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.delete("/assets/:assetSid", async (req, res) => {
+  try {
+    await deleteAsset(req.params.assetSid);
+    res.json({ message: "Asset deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to delete asset",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
