@@ -3,7 +3,7 @@ import express from "express";
 import multer from "multer";
 import { parse } from "csv-parse";
 import { Readable } from "stream";
-import { makeCall } from "./twilioService";
+import { makeCall } from "./twilioService.js";
 import twilio from "twilio";
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -66,7 +66,11 @@ const analyzeSpeechResponse = (transcript: string) => {
   if (percentageMatches.length > 0) {
     // Get the first match and convert written numbers if necessary
     const match = percentageMatches[0][1];
-    const numberMap = { ten: "10", fifteen: "15", twenty: "20" };
+    const numberMap: Record<string, string> = {
+      ten: "10",
+      fifteen: "15",
+      twenty: "20",
+    };
     discountAmount = numberMap[match.toLowerCase()] || match;
     discountAmount += match.includes("dollar") ? " dollars off" : "%";
   }

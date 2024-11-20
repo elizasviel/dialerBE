@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import csvUploader from "./csvUploader";
+import csvUploader from "./csvUploader.js";
 
 const app = express();
 
