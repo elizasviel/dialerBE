@@ -16,17 +16,17 @@ const upload = multer({
 interface BusinessRow {
   name: string;
   phone: string;
-  callNotes: string;
-}
-
-interface SpeechResult {
-  confidence: number;
-  transcript: string;
+  hasDiscount?: boolean;
+  discountAmount?: string;
+  discountDetails?: string;
+  lastCalled?: Date;
+  callStatus?: string;
 }
 
 const validatePhone = (phone: string): boolean => {
-  const phoneRegex = /^\+?[\d\s-()]{10,}$/;
-  return phoneRegex.test(phone);
+  const standardized = standardizePhoneNumber(phone);
+  // Ensure it matches E.164 format (e.g., +1234567890)
+  return /^\+\d{11,}$/.test(standardized);
 };
 
 const validateRow = (row: BusinessRow): string | null => {
@@ -54,6 +54,22 @@ const analyzeSpeechResponse = (transcript: string) => {
       availabilityInfo ? `Available ${availabilityInfo[1]}` : ""
     }`.trim(),
   };
+};
+
+const standardizePhoneNumber = (phone: string): string => {
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, "");
+
+  // Add +1 prefix if it's a 10-digit US number
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+  // If it already has country code (11 digits starting with 1)
+  else if (digits.length === 11 && digits.startsWith("1")) {
+    return `+${digits}`;
+  }
+
+  return `+${digits}`;
 };
 
 router.post(
@@ -102,8 +118,12 @@ router.post(
       const result = await prisma.business.createMany({
         data: records.map((record) => ({
           name: record.name.trim(),
-          phone: record.phone.trim(),
-          callNotes: "",
+          phone: standardizePhoneNumber(record.phone),
+          hasDiscount: record.hasDiscount || false,
+          discountAmount: record.discountAmount || null,
+          discountDetails: record.discountDetails || null,
+          lastCalled: record.lastCalled || null,
+          callStatus: record.callStatus || "pending",
         })),
         skipDuplicates: true,
       });
@@ -155,12 +175,14 @@ router.get("/export-csv", async (_req, res) => {
     });
 
     // Create CSV header
-    const csvHeader = "name,phone,callNotes\n";
+    const csvHeader =
+      "name,phone,hasDiscount,discountAmount,discountDetails,lastCalled,callStatus\n";
 
     // Convert businesses to CSV rows
     const csvRows = businesses
       .map(
-        (business) => `${business.name},${business.phone},${business.callNotes}`
+        (business) =>
+          `${business.name},${business.phone},${business.hasDiscount},${business.discountAmount},${business.discountDetails},${business.lastCalled},${business.callStatus}`
       )
       .join("\n");
 
@@ -218,7 +240,7 @@ router.post("/call-handler", async (req: any, res: any) => {
     // First find the business
     const business = await prisma.business.findFirst({
       where: {
-        phone: phoneNumber,
+        phone: standardizePhoneNumber(phoneNumber),
       },
     });
 
@@ -230,6 +252,7 @@ router.post("/call-handler", async (req: any, res: any) => {
     }
 
     // Then update it
+    console.log("UPDATING BUSINESS");
     await prisma.business.update({
       where: { id: business.id },
       data: {
@@ -238,11 +261,12 @@ router.post("/call-handler", async (req: any, res: any) => {
         discountDetails: analysis.discountDetails,
         lastCalled: new Date(),
         callStatus: "completed",
-        callNotes: speechResult,
       },
     });
 
-    twiml.say("Thank you for the information. Have a great day!");
+    twiml.say(
+      `Thank you. To confirm, you offer a ${analysis.discountAmount} military discount ${analysis.discountDetails}. We'll ensure this is accurately listed in our directory. Have a great day!`
+    );
     twiml.hangup();
 
     return res.type("text/xml").send(twiml.toString());

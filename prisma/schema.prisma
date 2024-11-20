@@ -17,7 +17,6 @@ model Business {
   id              String    @id @default(cuid())
   name            String
   phone           String    @unique
-  callNotes       String
   hasDiscount     Boolean   @default(false)
   discountAmount  String?
   discountDetails String?
