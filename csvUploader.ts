@@ -40,19 +40,41 @@ const validateRow = (row: BusinessRow): string | null => {
 };
 
 const analyzeSpeechResponse = (transcript: string) => {
-  const hasDiscount = /yes|yeah|we do|correct/i.test(transcript);
-  const percentageMatch = transcript.match(/(\d+)(?:\s*%|\s*percent)/);
-  const discountAmount = percentageMatch ? percentageMatch[1] + "%" : null;
+  // Normalize the transcript for easier matching
+  const normalizedText = transcript.toLowerCase().trim();
 
-  const activeDutyOnly = /active\s*duty\s*only/i.test(transcript);
-  const availabilityInfo = transcript.match(/available\s*([\w\s,]+)(?=\.|$)/i);
+  // Check for discount existence with more variations
+  const hasDiscount =
+    /\b(yes|yeah|yep|correct|we do|offer|have|gives?|provides?)\b/i.test(
+      normalizedText
+    ) &&
+    !/\b(no|don't|not|doesn't)\s+(?:offer|have|give|provide)\b/i.test(
+      normalizedText
+    );
+
+  // Enhanced percentage matching
+  const percentageMatches = [
+    // Match "X percent" or "X %" formats
+    ...normalizedText.matchAll(/(\d+)(?:\s*%|\s*percent(?:age)?)/g),
+    // Match "X dollars off" format
+    ...normalizedText.matchAll(/(\d+)(?:\s*dollars?\s+off)/g),
+    // Match written numbers (up to twenty) with percent
+    ...(normalizedText.match(/\b(ten|fifteen|twenty)\s*(?:percent|%)/i) || []),
+  ];
+
+  let discountAmount = null;
+  if (percentageMatches.length > 0) {
+    // Get the first match and convert written numbers if necessary
+    const match = percentageMatches[0][1];
+    const numberMap = { ten: "10", fifteen: "15", twenty: "20" };
+    discountAmount = numberMap[match.toLowerCase()] || match;
+    discountAmount += match.includes("dollar") ? " dollars off" : "%";
+  }
 
   return {
     hasDiscount,
     discountAmount,
-    discountDetails: `${activeDutyOnly ? "Active duty only. " : ""}${
-      availabilityInfo ? `Available ${availabilityInfo[1]}` : ""
-    }`.trim(),
+    discountDetails: transcript, // Store the entire original transcript
   };
 };
 
