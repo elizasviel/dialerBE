@@ -309,9 +309,12 @@ router.post("/call-handler", async (req: any, res: any) => {
 });
 
 router.get("/business-updates", (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+  });
 
   const sendUpdate = (data: any) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
