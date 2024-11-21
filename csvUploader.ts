@@ -228,9 +228,7 @@ router.get("/export-csv", async (_req, res) => {
 
 router.post("/call-all", async (_req, res) => {
   try {
-    const businesses = await prisma.business.findMany({
-      select: { id: true, phone: true },
-    });
+    const businesses = await prisma.business.findMany();
 
     // Set all businesses to calling status first
     await prisma.business.updateMany({
@@ -244,7 +242,7 @@ router.post("/call-all", async (_req, res) => {
       },
     });
 
-    // Emit updates for all businesses
+    // Emit updates for all businesses with complete business data
     businesses.forEach((business) => {
       updateEmitter.emit("update", {
         ...business,
