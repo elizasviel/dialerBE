@@ -5,6 +5,7 @@ import { parse } from "csv-parse";
 import { Readable } from "stream";
 import { makeCall } from "./twilioService.js";
 import twilio from "twilio";
+import { EventEmitter } from "events";
 const router = express.Router();
 const prisma = new PrismaClient();
 const upload = multer({
@@ -12,6 +13,7 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
 });
+const updateEmitter = new EventEmitter();
 
 interface BusinessRow {
   name: string;
@@ -252,7 +254,7 @@ router.post("/call-all", async (_req, res) => {
 router.post("/call-handler", async (req: any, res: any) => {
   const twiml = new twilio.twiml.VoiceResponse();
   const speechResult = req.body.SpeechResult as string;
-  const phoneNumber = req.body.To; // The called phone number
+  const phoneNumber = req.body.To;
 
   if (!speechResult) {
     twiml.say("I'm sorry, I didn't catch that. Thank you for your time.");
@@ -263,7 +265,6 @@ router.post("/call-handler", async (req: any, res: any) => {
   const analysis = analyzeSpeechResponse(speechResult);
 
   try {
-    // First find the business
     const business = await prisma.business.findFirst({
       where: {
         phone: standardizePhoneNumber(phoneNumber),
@@ -277,9 +278,7 @@ router.post("/call-handler", async (req: any, res: any) => {
       return res.type("text/xml").send(twiml.toString());
     }
 
-    // Then update it
-    console.log("UPDATING BUSINESS");
-    await prisma.business.update({
+    const updatedBusiness = await prisma.business.update({
       where: { id: business.id },
       data: {
         hasDiscount: analysis.hasDiscount,
@@ -289,6 +288,9 @@ router.post("/call-handler", async (req: any, res: any) => {
         callStatus: "completed",
       },
     });
+
+    // Emit the update event
+    updateEmitter.emit("update", updatedBusiness);
 
     twiml.say(
       `Thank you. To confirm, you offer a ${analysis.discountAmount} military discount ${analysis.discountDetails}. We'll ensure this is accurately listed in our directory. Have a great day!`
@@ -304,6 +306,22 @@ router.post("/call-handler", async (req: any, res: any) => {
     twiml.hangup();
     return res.type("text/xml").send(twiml.toString());
   }
+});
+
+router.get("/business-updates", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const sendUpdate = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  updateEmitter.on("update", sendUpdate);
+
+  req.on("close", () => {
+    updateEmitter.off("update", sendUpdate);
+  });
 });
 
 export default router;
