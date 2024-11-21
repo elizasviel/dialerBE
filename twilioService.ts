@@ -1,4 +1,5 @@
 import twilio from "twilio";
+import type { Twilio } from "twilio";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -8,7 +9,10 @@ if (!accountSid || !authToken || !twilioPhoneNumber) {
   throw new Error("Missing required Twilio environment variables");
 }
 
-const client = twilio(accountSid, authToken);
+const validAccountSid: string = accountSid;
+const validAuthToken: string = authToken;
+
+const client: Twilio = twilio(validAccountSid, validAuthToken);
 
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
@@ -40,15 +44,15 @@ export async function makeCall(phoneNumber: string): Promise<string> {
 
 export async function getTwilioAccountInfo() {
   try {
-    const accountInfo = await client.api.v2010
-      .accounts(accountSid as string)
-      .fetch();
+    const account = await client.api.v2010.accounts(validAccountSid).fetch();
+    const balance = await client.balance.fetch();
+
     return {
-      friendlyName: accountInfo.friendlyName,
-      status: accountInfo.status,
-      type: accountInfo.type,
+      friendlyName: account.friendlyName || "Unknown Account",
+      status: account.status || "unknown",
+      type: account.type || "unknown",
       phoneNumber: twilioPhoneNumber,
-      remainingBalance: parseFloat(accountInfo.balance.toString()),
+      remainingBalance: balance.balance ? parseFloat(balance.balance) : null,
     };
   } catch (error) {
     console.error("Error fetching Twilio account info:", error);

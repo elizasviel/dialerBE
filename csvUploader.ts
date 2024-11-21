@@ -350,6 +350,7 @@ router.get("/twilio-info", async (_req, res) => {
     const accountInfo = await getTwilioAccountInfo();
     res.json(accountInfo);
   } catch (error) {
+    console.error("Error fetching Twilio info:", error);
     res.status(500).json({
       error: "Failed to fetch Twilio account info",
       details: error instanceof Error ? error.message : "Unknown error",
