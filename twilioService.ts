@@ -37,3 +37,21 @@ export async function makeCall(phoneNumber: string): Promise<string> {
     throw error;
   }
 }
+
+export async function getTwilioAccountInfo() {
+  try {
+    const accountInfo = await client.api.v2010
+      .accounts(accountSid as string)
+      .fetch();
+    return {
+      friendlyName: accountInfo.friendlyName,
+      status: accountInfo.status,
+      type: accountInfo.type,
+      phoneNumber: twilioPhoneNumber,
+      remainingBalance: parseFloat(accountInfo.balance.toString()),
+    };
+  } catch (error) {
+    console.error("Error fetching Twilio account info:", error);
+    throw error;
+  }
+}

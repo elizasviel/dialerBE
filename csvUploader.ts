@@ -3,7 +3,7 @@ import express from "express";
 import multer from "multer";
 import { parse } from "csv-parse";
 import { Readable } from "stream";
-import { makeCall } from "./twilioService.js";
+import { getTwilioAccountInfo, makeCall } from "./twilioService.js";
 import twilio from "twilio";
 import { EventEmitter } from "events";
 const router = express.Router();
@@ -343,6 +343,18 @@ router.get("/business-updates", (req, res) => {
   req.on("close", () => {
     updateEmitter.off("update", sendUpdate);
   });
+});
+
+router.get("/twilio-info", async (_req, res) => {
+  try {
+    const accountInfo = await getTwilioAccountInfo();
+    res.json(accountInfo);
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch Twilio account info",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
 export default router;
