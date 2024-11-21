@@ -3,7 +3,11 @@ import express from "express";
 import multer from "multer";
 import { parse } from "csv-parse";
 import { Readable } from "stream";
-import { getTwilioAccountInfo, makeCall } from "./twilioService.js";
+import {
+  getTwilioAccountInfo,
+  makeCall,
+  handleCallResponse,
+} from "./twilioService.js";
 import twilio from "twilio";
 import { EventEmitter } from "events";
 const router = express.Router();
@@ -270,17 +274,16 @@ router.post("/call-all", async (_req, res) => {
 });
 
 router.post("/call-handler", async (req: any, res: any) => {
-  const twiml = new twilio.twiml.VoiceResponse();
   const speechResult = req.body.SpeechResult as string;
   const phoneNumber = req.body.To;
+  const isFirstInteraction = req.body.CallStatus === "ringing";
 
   if (!speechResult) {
+    const twiml = new twilio.twiml.VoiceResponse();
     twiml.say("I'm sorry, I didn't catch that. Thank you for your time.");
     twiml.hangup();
     return res.type("text/xml").send(twiml.toString());
   }
-
-  const analysis = analyzeSpeechResponse(speechResult);
 
   try {
     const business = await prisma.business.findFirst({
@@ -291,33 +294,34 @@ router.post("/call-handler", async (req: any, res: any) => {
 
     if (!business) {
       console.error(`No business found with phone number: ${phoneNumber}`);
+      const twiml = new twilio.twiml.VoiceResponse();
       twiml.say("Thank you for your time. Goodbye!");
       twiml.hangup();
       return res.type("text/xml").send(twiml.toString());
     }
 
-    const updatedBusiness = await prisma.business.update({
-      where: { id: business.id },
-      data: {
-        hasDiscount: analysis.hasDiscount,
-        discountAmount: analysis.discountAmount,
-        discountDetails: analysis.discountDetails,
-        lastCalled: new Date(),
-        callStatus: "completed",
-      },
-    });
-
-    // Emit the update event
-    updateEmitter.emit("update", updatedBusiness);
-
-    twiml.say(
-      `Thank you. To confirm, you offer a ${analysis.discountAmount} military discount ${analysis.discountDetails}. We'll ensure this is accurately listed in our directory. Have a great day!`
+    const { twiml, analysis } = await handleCallResponse(
+      speechResult,
+      isFirstInteraction
     );
-    twiml.hangup();
+
+    if (analysis.shouldEndCall) {
+      await prisma.business.update({
+        where: { id: business.id },
+        data: {
+          hasDiscount: analysis.hasDiscount,
+          discountAmount: analysis.discountAmount,
+          discountDetails: analysis.discountDetails,
+          lastCalled: new Date(),
+          callStatus: "completed",
+        },
+      });
+    }
 
     return res.type("text/xml").send(twiml.toString());
   } catch (error) {
-    console.error("Error updating business record:", error);
+    console.error("Error handling call:", error);
+    const twiml = new twilio.twiml.VoiceResponse();
     twiml.say(
       "I apologize for the technical difficulty. Thank you for your time."
     );
