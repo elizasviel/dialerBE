@@ -49,7 +49,9 @@ export async function makeCall(phoneNumber: string): Promise<string> {
           "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
         method: "POST",
       })
-      .play(speechUrl);
+      .play(
+        "https://dialer0.s3.us-east-1.amazonaws.com/speech-1732250575331.mp3?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEB0aCXVzLWVhc3QtMSJGMEQCIHkh2ZyBQYXWGn963weQN1SNs65Dy8sSayEaU1kVh9AXAiBnnd1KgmD9%2FpIhFs95ufFyX318%2FylTUMbuLNO5VXsrlSrQAwi2%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDDkxMTQ0MjQzNDM0OCIMFQ7qWYJAKW8zyzvZKqQDUKJJ2xuyb8ZSN3TlT2ufrEXJI9HhizFAmFOi5z2lAuwgYcfVYb4iZyopt4JpOBzM8UHfxWIQ6a7LXxz9so0qy9cqIbdBOQAkIZe8mcRNzxCETEo%2Fqk%2BqlRlvxMX4nrd8WFnTuFrNdDqwSnn5KzGRKDhxsH9OxeUaqkkNRWzBEk%2BaE2n%2BmCjfbI%2BHc%2BeMZ5v02gOFi1%2F%2B8hhn%2FiZMtC8GfqCcPeapKgR3MklPc3CnZOpooF%2BwkWnsYyHVsSye6kPB3QWYTjv8GW0AhVi%2FDdfeV9Pr5ntwhIKwQCW62ETswsZDPBgfgJ2qcLzmMYlwaGYHM83woLyV4CFnNdkr3ivxEBezh9izS63hf1qcoR0ztG79DL%2BJ%2BWny%2BpJTUO5PLf6CMnOMl%2F6kCUjsCqSgClLfrdRLJTF67eIT0EMpoFOYqBjxX6bENQkAgelgapL8ccH4E0psHfVaM5Kmm1M5babxd2CC5u3T%2FAv%2BQnjSwWydD8YkP9%2Fm3ct0Fz5ZG%2BW1vbkOLV2bcItPN1zcmnchOz5euB0b6W3C7P38Qmse9MZ%2FgJ7OoCwbMMXd%2F7kGOuUCTYiwc2AauJEMcW5DCTnPdaheS5h8wyfhedmEFA8fXyAS0P4wtTdjymoiyBxyVG6VfOtxudbT9t8okWKo%2Bnw2VOzGOPytDksCdQaGtzrs%2BLuHv1ltMPXe8QFxHnU%2Fn7nOIi76NPZL6DDHNWkFeRrtK4JHjWZCrUPPrbYGOYMrZMhP8lZUL7WG7CbqMwVPFoXAODQCc6HZ1ybcCD2L6gOkEcCRdNJPVfafMLJ%2B7r2KRdnIpkMvGvII4%2Fqpr2X0%2FgurKv8f2gJcVt3xMRCrDDJvF0ZtLtX%2Fdr2ADwlxtiOhTxghhqtR3z1N4CgfGCNru0DZucaFpLaXPubx19rvu9I3gjE%2BSeJgIDbeB9lvLWY3NFEbEFxMHtB7LLwei8VPPJzJHIsqQM4QV%2FjFPxplNQbnZwV2SbEsbQ2MgxCyXVF8wCsWMSpfK6DkvPh6pi4P542F1kmJH9JNXh8FY3KdASnfr3jM8gCQ&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA5INRT3EWJPJEKKB7%2F20241122%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241122T044421Z&X-Amz-Expires=36000&X-Amz-SignedHeaders=host&X-Amz-Signature=e745d8ff4ec86656e9a162d2197748f025b67db3a828d70dfef61aede43f8947"
+      );
 
     const call = await client.calls.create({
       twiml: twiml.toString(),
@@ -92,7 +94,9 @@ export async function handleCallResponse(
   const twiml = new twilio.twiml.VoiceResponse();
 
   if (result.analysis.shouldEndCall) {
-    twiml.play(speechUrl);
+    twiml.play(
+      "https://dialer0.s3.us-east-1.amazonaws.com/speech-1732250575331.mp3?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEB0aCXVzLWVhc3QtMSJGMEQCIHkh2ZyBQYXWGn963weQN1SNs65Dy8sSayEaU1kVh9AXAiBnnd1KgmD9%2FpIhFs95ufFyX318%2FylTUMbuLNO5VXsrlSrQAwi2%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDDkxMTQ0MjQzNDM0OCIMFQ7qWYJAKW8zyzvZKqQDUKJJ2xuyb8ZSN3TlT2ufrEXJI9HhizFAmFOi5z2lAuwgYcfVYb4iZyopt4JpOBzM8UHfxWIQ6a7LXxz9so0qy9cqIbdBOQAkIZe8mcRNzxCETEo%2Fqk%2BqlRlvxMX4nrd8WFnTuFrNdDqwSnn5KzGRKDhxsH9OxeUaqkkNRWzBEk%2BaE2n%2BmCjfbI%2BHc%2BeMZ5v02gOFi1%2F%2B8hhn%2FiZMtC8GfqCcPeapKgR3MklPc3CnZOpooF%2BwkWnsYyHVsSye6kPB3QWYTjv8GW0AhVi%2FDdfeV9Pr5ntwhIKwQCW62ETswsZDPBgfgJ2qcLzmMYlwaGYHM83woLyV4CFnNdkr3ivxEBezh9izS63hf1qcoR0ztG79DL%2BJ%2BWny%2BpJTUO5PLf6CMnOMl%2F6kCUjsCqSgClLfrdRLJTF67eIT0EMpoFOYqBjxX6bENQkAgelgapL8ccH4E0psHfVaM5Kmm1M5babxd2CC5u3T%2FAv%2BQnjSwWydD8YkP9%2Fm3ct0Fz5ZG%2BW1vbkOLV2bcItPN1zcmnchOz5euB0b6W3C7P38Qmse9MZ%2FgJ7OoCwbMMXd%2F7kGOuUCTYiwc2AauJEMcW5DCTnPdaheS5h8wyfhedmEFA8fXyAS0P4wtTdjymoiyBxyVG6VfOtxudbT9t8okWKo%2Bnw2VOzGOPytDksCdQaGtzrs%2BLuHv1ltMPXe8QFxHnU%2Fn7nOIi76NPZL6DDHNWkFeRrtK4JHjWZCrUPPrbYGOYMrZMhP8lZUL7WG7CbqMwVPFoXAODQCc6HZ1ybcCD2L6gOkEcCRdNJPVfafMLJ%2B7r2KRdnIpkMvGvII4%2Fqpr2X0%2FgurKv8f2gJcVt3xMRCrDDJvF0ZtLtX%2Fdr2ADwlxtiOhTxghhqtR3z1N4CgfGCNru0DZucaFpLaXPubx19rvu9I3gjE%2BSeJgIDbeB9lvLWY3NFEbEFxMHtB7LLwei8VPPJzJHIsqQM4QV%2FjFPxplNQbnZwV2SbEsbQ2MgxCyXVF8wCsWMSpfK6DkvPh6pi4P542F1kmJH9JNXh8FY3KdASnfr3jM8gCQ&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA5INRT3EWJPJEKKB7%2F20241122%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241122T044421Z&X-Amz-Expires=36000&X-Amz-SignedHeaders=host&X-Amz-Signature=e745d8ff4ec86656e9a162d2197748f025b67db3a828d70dfef61aede43f8947"
+    );
     twiml.hangup();
   } else {
     twiml
@@ -104,7 +108,9 @@ export async function handleCallResponse(
           "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
         method: "POST",
       })
-      .play(speechUrl);
+      .play(
+        "https://dialer0.s3.us-east-1.amazonaws.com/speech-1732250575331.mp3?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEB0aCXVzLWVhc3QtMSJGMEQCIHkh2ZyBQYXWGn963weQN1SNs65Dy8sSayEaU1kVh9AXAiBnnd1KgmD9%2FpIhFs95ufFyX318%2FylTUMbuLNO5VXsrlSrQAwi2%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDDkxMTQ0MjQzNDM0OCIMFQ7qWYJAKW8zyzvZKqQDUKJJ2xuyb8ZSN3TlT2ufrEXJI9HhizFAmFOi5z2lAuwgYcfVYb4iZyopt4JpOBzM8UHfxWIQ6a7LXxz9so0qy9cqIbdBOQAkIZe8mcRNzxCETEo%2Fqk%2BqlRlvxMX4nrd8WFnTuFrNdDqwSnn5KzGRKDhxsH9OxeUaqkkNRWzBEk%2BaE2n%2BmCjfbI%2BHc%2BeMZ5v02gOFi1%2F%2B8hhn%2FiZMtC8GfqCcPeapKgR3MklPc3CnZOpooF%2BwkWnsYyHVsSye6kPB3QWYTjv8GW0AhVi%2FDdfeV9Pr5ntwhIKwQCW62ETswsZDPBgfgJ2qcLzmMYlwaGYHM83woLyV4CFnNdkr3ivxEBezh9izS63hf1qcoR0ztG79DL%2BJ%2BWny%2BpJTUO5PLf6CMnOMl%2F6kCUjsCqSgClLfrdRLJTF67eIT0EMpoFOYqBjxX6bENQkAgelgapL8ccH4E0psHfVaM5Kmm1M5babxd2CC5u3T%2FAv%2BQnjSwWydD8YkP9%2Fm3ct0Fz5ZG%2BW1vbkOLV2bcItPN1zcmnchOz5euB0b6W3C7P38Qmse9MZ%2FgJ7OoCwbMMXd%2F7kGOuUCTYiwc2AauJEMcW5DCTnPdaheS5h8wyfhedmEFA8fXyAS0P4wtTdjymoiyBxyVG6VfOtxudbT9t8okWKo%2Bnw2VOzGOPytDksCdQaGtzrs%2BLuHv1ltMPXe8QFxHnU%2Fn7nOIi76NPZL6DDHNWkFeRrtK4JHjWZCrUPPrbYGOYMrZMhP8lZUL7WG7CbqMwVPFoXAODQCc6HZ1ybcCD2L6gOkEcCRdNJPVfafMLJ%2B7r2KRdnIpkMvGvII4%2Fqpr2X0%2FgurKv8f2gJcVt3xMRCrDDJvF0ZtLtX%2Fdr2ADwlxtiOhTxghhqtR3z1N4CgfGCNru0DZucaFpLaXPubx19rvu9I3gjE%2BSeJgIDbeB9lvLWY3NFEbEFxMHtB7LLwei8VPPJzJHIsqQM4QV%2FjFPxplNQbnZwV2SbEsbQ2MgxCyXVF8wCsWMSpfK6DkvPh6pi4P542F1kmJH9JNXh8FY3KdASnfr3jM8gCQ&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA5INRT3EWJPJEKKB7%2F20241122%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241122T044421Z&X-Amz-Expires=36000&X-Amz-SignedHeaders=host&X-Amz-Signature=e745d8ff4ec86656e9a162d2197748f025b67db3a828d70dfef61aede43f8947"
+      );
   }
 
   return {
