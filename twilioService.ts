@@ -1,7 +1,11 @@
 import twilio from "twilio";
 import type { Twilio } from "twilio";
 import { handleConversation } from "./openaiService.js";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  waitUntilObjectExists,
+} from "@aws-sdk/client-s3";
 import OpenAI from "openai";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -134,16 +138,28 @@ async function generateAndStoreVoice(text: string): Promise<string> {
   const key = `speech-${Date.now()}.mp3`;
 
   // Upload to S3
-  await s3Client.send(
-    new PutObjectCommand({
+  const putCommand = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: "audio/mpeg",
+  });
+
+  await s3Client.send(putCommand);
+
+  // Wait for the object to be available
+  await waitUntilObjectExists(
+    {
+      client: s3Client,
+      maxWaitTime: 10,
+    },
+    {
       Bucket: BUCKET_NAME,
       Key: key,
-      Body: buffer,
-      ContentType: "audio/mpeg",
-    })
+    }
   );
 
-  // Generate signed URL
+  // Then generate the signed URL
   const getCommand = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
