@@ -17,25 +17,14 @@ const client: Twilio = twilio(validAccountSid, validAuthToken);
 
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
-    const call = await client.calls.create({
-      twiml: `
+    const { twiml } = await handleCallResponse("", true); // true for first interaction
 
-        <Response>
-          <Gather input="speech" timeout="5" speechTimeout="auto" 
-                    action="https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler" method="POST">
-            <Say>
-              Hi, I'm calling on behalf of Valor, a military discount directory. 
-              We're creating a list to help service members and their families find military discounts. 
-              Could you tell me if you offer a military discount, and if so, what percentage?
-            </Say>
-          </Gather>
-          <Say>I didn't catch that. Let me repeat.</Say>
-          <Redirect>https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler</Redirect>
-        </Response>
-      `,
+    const call = await client.calls.create({
+      twiml: twiml.toString(),
       to: phoneNumber,
       from: twilioPhoneNumber,
     });
+
     return call.sid;
   } catch (error) {
     console.error("Error making Twilio call:", error);

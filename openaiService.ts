@@ -5,10 +5,27 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const SYSTEM_PROMPT = `You are a professional, friendly representative from Valor, a military discount directory. 
-Your goal is to gather information about military discounts from businesses.
-Keep calls brief and professional. Listen carefully for discount details, availability, and eligibility requirements.
-Never make up information or be pushy.`;
+const SYSTEM_PROMPT = `You are a professional representative from Valor, a military discount directory.
+Your goal is to gather information about military discounts following this specific flow:
+
+1. Introduction (first interaction only):
+- Introduce yourself briefly as a Valor representative
+- Explain you're gathering information for a military discount directory
+
+2. Main Question:
+- Ask about military discount and percentage
+- Listen carefully to the response
+
+3. Passive Information Gathering:
+- Listen for mentions of specific days/times the discount is available
+- Listen for eligibility requirements (active duty, veterans, etc.)
+- Do not explicitly ask about these details
+
+4. Wrap-up:
+- Confirm the discount details if provided
+- Thank them and end the call professionally
+
+Keep responses brief and professional. Never make up information.`;
 
 export async function handleConversation(
   transcript: string,
@@ -19,6 +36,8 @@ export async function handleConversation(
     hasDiscount: boolean;
     discountAmount?: string;
     discountDetails?: string;
+    availabilityInfo?: string;
+    eligibilityInfo?: string;
     shouldEndCall: boolean;
   };
 }> {
@@ -57,13 +76,25 @@ export async function handleConversation(
               type: "string",
               description: "Additional details about the discount",
             },
+            availabilityInfo: {
+              type: "string",
+              description:
+                "Any mentioned days/times when the discount is available",
+            },
+            eligibilityInfo: {
+              type: "string",
+              description:
+                "Any mentioned eligibility requirements (active duty, veterans, etc.)",
+            },
             nextResponse: {
               type: "string",
-              description: "What the AI should say next",
+              description:
+                "What the AI should say next, following the conversation flow",
             },
             shouldEndCall: {
               type: "boolean",
-              description: "Whether the conversation should end",
+              description:
+                "Whether enough information has been gathered to end the call",
             },
           },
           required: ["hasDiscount", "nextResponse", "shouldEndCall"],
@@ -82,6 +113,8 @@ export async function handleConversation(
       hasDiscount: result.hasDiscount,
       discountAmount: result.discountAmount,
       discountDetails: result.discountDetails,
+      availabilityInfo: result.availabilityInfo,
+      eligibilityInfo: result.eligibilityInfo,
       shouldEndCall: result.shouldEndCall,
     },
   };
