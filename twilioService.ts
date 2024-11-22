@@ -27,6 +27,9 @@ export async function makeCall(phoneNumber: string): Promise<string> {
           "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
         method: "POST",
       })
+      .play(
+        "http://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3"
+      )
       .say(
         "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?"
       );
