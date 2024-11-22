@@ -5,6 +5,7 @@ import {
   S3Client,
   PutObjectCommand,
   waitUntilObjectExists,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import OpenAI from "openai";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -127,7 +128,6 @@ export async function handleCallResponse(
 }
 
 async function generateAndStoreVoice(text: string): Promise<string> {
-  // Generate speech using OpenAI
   const mp3 = await openai.audio.speech.create({
     model: "tts-1",
     voice: "alloy",
@@ -159,8 +159,8 @@ async function generateAndStoreVoice(text: string): Promise<string> {
     }
   );
 
-  // Then generate the signed URL
-  const getCommand = new PutObjectCommand({
+  // Generate signed URL using GetObjectCommand instead of PutObjectCommand
+  const getCommand = new GetObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
   });
