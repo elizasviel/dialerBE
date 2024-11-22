@@ -50,6 +50,13 @@ export async function handleConversation(
     availabilityInfo?: string;
     eligibilityInfo?: string;
     shouldEndCall: boolean;
+    endReason?:
+      | "got_complete_info"
+      | "no_discount_confirmed"
+      | "not_interested"
+      | "max_attempts_reached"
+      | "unclear_response"
+      | "continue";
   };
 }> {
   const messages: ChatCompletionMessageParam[] = [
@@ -98,7 +105,8 @@ export async function handleConversation(
             },
             nextResponse: {
               type: "string",
-              description: "What the AI should say next",
+              description:
+                "What the AI should say next, following the conversation flow",
             },
             shouldEndCall: {
               type: "boolean",
@@ -141,6 +149,7 @@ export async function handleConversation(
       availabilityInfo: result.availabilityInfo,
       eligibilityInfo: result.eligibilityInfo,
       shouldEndCall: result.shouldEndCall,
+      endReason: result.endReason,
     },
   };
 }

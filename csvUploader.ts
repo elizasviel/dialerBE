@@ -277,11 +277,30 @@ router.post("/call-handler", async (req: any, res: any) => {
   const speechResult = req.body.SpeechResult as string;
   const phoneNumber = req.body.To;
   const isFirstInteraction = !speechResult;
+  const numAttempts = parseInt(req.body.numAttempts || "0");
 
   if (!speechResult && !isFirstInteraction) {
     const twiml = new twilio.twiml.VoiceResponse();
-    twiml.say("I'm sorry, I didn't catch that. Thank you for your time.");
-    twiml.hangup();
+    if (numAttempts >= 2) {
+      twiml.say(
+        "I apologize, but I'm having trouble understanding. Thank you for your time."
+      );
+      twiml.hangup();
+      return res.type("text/xml").send(twiml.toString());
+    }
+    twiml
+      .gather({
+        input: ["speech"],
+        timeout: 5,
+        speechTimeout: "auto",
+        action: `https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler?numAttempts=${
+          numAttempts + 1
+        }`,
+        method: "POST",
+      })
+      .say(
+        "I'm sorry, I didn't catch that. Could you please repeat your response?"
+      );
     return res.type("text/xml").send(twiml.toString());
   }
 
@@ -315,16 +334,33 @@ router.post("/call-handler", async (req: any, res: any) => {
     );
 
     if (analysis.shouldEndCall) {
+      let callStatus: string;
+      switch (analysis.endReason) {
+        case "got_complete_info":
+        case "no_discount_confirmed":
+          callStatus = "completed";
+          break;
+        case "not_interested":
+          callStatus = "rejected";
+          break;
+        case "max_attempts_reached":
+        case "unclear_response":
+          callStatus = "failed";
+          break;
+        default:
+          callStatus = "completed";
+      }
+
       await prisma.business.update({
         where: { id: business.id },
         data: {
           hasDiscount: analysis.hasDiscount,
-          discountAmount: analysis.discountAmount,
-          discountDetails: analysis.discountDetails,
-          availabilityInfo: analysis.availabilityInfo,
-          eligibilityInfo: analysis.eligibilityInfo,
+          discountAmount: analysis.discountAmount || null,
+          discountDetails: analysis.discountDetails || null,
+          availabilityInfo: analysis.availabilityInfo || null,
+          eligibilityInfo: analysis.eligibilityInfo || null,
           lastCalled: new Date(),
-          callStatus: "completed",
+          callStatus,
         },
       });
     }

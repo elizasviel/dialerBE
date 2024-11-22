@@ -14,12 +14,14 @@ datasource db {
 }
 
 model Business {
-  id              String    @id @default(cuid())
-  name            String
-  phone           String    @unique
-  hasDiscount     Boolean   @default(false)
-  discountAmount  String?
-  discountDetails String?
-  lastCalled      DateTime?
-  callStatus      String? // "pending", "completed", "failed"
+  id               String    @id @default(cuid())
+  name             String
+  phone            String    @unique
+  hasDiscount      Boolean   @default(false)
+  discountAmount   String?
+  discountDetails  String?
+  availabilityInfo String?
+  eligibilityInfo  String?
+  lastCalled       DateTime?
+  callStatus       String?
 }
