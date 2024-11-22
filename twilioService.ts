@@ -37,7 +37,7 @@ export async function makeCall(phoneNumber: string): Promise<string> {
     const greeting =
       "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?";
 
-    const speechUrl = await generateAndStoreVoice(greeting);
+    //const speechUrl = await generateAndStoreVoice(greeting);
 
     const twiml = new twilio.twiml.VoiceResponse();
     twiml
@@ -89,7 +89,7 @@ export async function handleCallResponse(
   isFirstInteraction: boolean
 ) {
   const result = await handleConversation(transcript, isFirstInteraction);
-  const speechUrl = await generateAndStoreVoice(result.response);
+  //const speechUrl = await generateAndStoreVoice(result.response);
 
   const twiml = new twilio.twiml.VoiceResponse();
 
