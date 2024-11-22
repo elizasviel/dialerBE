@@ -276,9 +276,9 @@ router.post("/call-all", async (_req, res) => {
 router.post("/call-handler", async (req: any, res: any) => {
   const speechResult = req.body.SpeechResult as string;
   const phoneNumber = req.body.To;
-  const isFirstInteraction = req.body.CallStatus === "ringing";
+  const isFirstInteraction = !speechResult;
 
-  if (!speechResult) {
+  if (!speechResult && !isFirstInteraction) {
     const twiml = new twilio.twiml.VoiceResponse();
     twiml.say("I'm sorry, I didn't catch that. Thank you for your time.");
     twiml.hangup();
@@ -300,8 +300,17 @@ router.post("/call-handler", async (req: any, res: any) => {
       return res.type("text/xml").send(twiml.toString());
     }
 
+    if (isFirstInteraction) {
+      await prisma.business.update({
+        where: { id: business.id },
+        data: {
+          callStatus: "in-progress",
+        },
+      });
+    }
+
     const { twiml, analysis } = await handleCallResponse(
-      speechResult,
+      speechResult || "",
       isFirstInteraction
     );
 
@@ -312,6 +321,8 @@ router.post("/call-handler", async (req: any, res: any) => {
           hasDiscount: analysis.hasDiscount,
           discountAmount: analysis.discountAmount,
           discountDetails: analysis.discountDetails,
+          availabilityInfo: analysis.availabilityInfo,
+          eligibilityInfo: analysis.eligibilityInfo,
           lastCalled: new Date(),
           callStatus: "completed",
         },

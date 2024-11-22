@@ -17,7 +17,19 @@ const client: Twilio = twilio(validAccountSid, validAuthToken);
 
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
-    const { twiml } = await handleCallResponse("", true); // true for first interaction
+    const twiml = new twilio.twiml.VoiceResponse();
+    twiml
+      .gather({
+        input: ["speech"],
+        timeout: 5,
+        speechTimeout: "auto",
+        action:
+          "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
+        method: "POST",
+      })
+      .say(
+        "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?"
+      );
 
     const call = await client.calls.create({
       twiml: twiml.toString(),

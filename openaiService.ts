@@ -21,7 +21,18 @@ Your goal is to gather information about military discounts following this speci
 - Listen for eligibility requirements (active duty, veterans, etc.)
 - Do not explicitly ask about these details
 
-4. Wrap-up:
+4. Call Control Rules:
+- End the call if:
+  * You've confirmed whether they have a discount and got the percentage (if applicable)
+  * You've received a clear "no" about military discounts
+  * The response indicates they're not interested in continuing
+  * You've made 3 attempts to get clear information
+- Continue the call if:
+  * You haven't received clear information about the discount
+  * The response is unclear and needs clarification
+  * You're waiting for specific discount details after confirming they have one
+
+5. Wrap-up:
 - Confirm the discount details if provided
 - Thank them and end the call professionally
 
@@ -83,21 +94,35 @@ export async function handleConversation(
             },
             eligibilityInfo: {
               type: "string",
-              description:
-                "Any mentioned eligibility requirements (active duty, veterans, etc.)",
+              description: "Any mentioned eligibility requirements",
             },
             nextResponse: {
               type: "string",
-              description:
-                "What the AI should say next, following the conversation flow",
+              description: "What the AI should say next",
             },
             shouldEndCall: {
               type: "boolean",
-              description:
-                "Whether enough information has been gathered to end the call",
+              description: "Whether to end the call based on the control rules",
+            },
+            endReason: {
+              type: "string",
+              enum: [
+                "got_complete_info",
+                "no_discount_confirmed",
+                "not_interested",
+                "max_attempts_reached",
+                "unclear_response",
+                "continue",
+              ],
+              description: "The reason for ending or continuing the call",
             },
           },
-          required: ["hasDiscount", "nextResponse", "shouldEndCall"],
+          required: [
+            "hasDiscount",
+            "nextResponse",
+            "shouldEndCall",
+            "endReason",
+          ],
         },
       },
     ],
