@@ -11,7 +11,11 @@ import {
 } from "./twilioService.js";
 import twilio from "twilio";
 import { EventEmitter } from "events";
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 const router = express.Router();
 const prisma = new PrismaClient();
 const upload = multer({
@@ -430,6 +434,27 @@ router.get("/assets", async (_req, res) => {
     console.error("Error fetching assets:", error);
     res.status(500).json({
       error: "Failed to fetch assets",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.delete("/assets/:key", async (req, res) => {
+  try {
+    const key = decodeURIComponent(req.params.key);
+
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+
+    res.json({ message: "Asset deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting asset:", error);
+    res.status(500).json({
+      error: "Failed to delete asset",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
