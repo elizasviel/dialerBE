@@ -40,14 +40,16 @@ export async function makeCall(phoneNumber: string): Promise<string> {
     const speechUrl = await generateAndStoreVoice(greeting);
 
     const twiml = new twilio.twiml.VoiceResponse();
-    twiml.play(speechUrl).gather({
-      input: ["speech"],
-      timeout: 5,
-      speechTimeout: "auto",
-      action:
-        "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
-      method: "POST",
-    });
+    twiml
+      .gather({
+        input: ["speech"],
+        timeout: 5,
+        speechTimeout: "auto",
+        action:
+          "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
+        method: "POST",
+      })
+      .play(speechUrl);
 
     const call = await client.calls.create({
       twiml: twiml.toString(),
@@ -93,14 +95,16 @@ export async function handleCallResponse(
     twiml.play(speechUrl);
     twiml.hangup();
   } else {
-    twiml.play(speechUrl).gather({
-      input: ["speech"],
-      timeout: 5,
-      speechTimeout: "auto",
-      action:
-        "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
-      method: "POST",
-    });
+    twiml
+      .gather({
+        input: ["speech"],
+        timeout: 5,
+        speechTimeout: "auto",
+        action:
+          "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
+        method: "POST",
+      })
+      .play(speechUrl);
   }
 
   return {
