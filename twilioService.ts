@@ -153,8 +153,19 @@ async function generateAndStoreVoice(text: string): Promise<string> {
   return url;
 }
 
-async function generateStandardRecordings() {
-  const recordings = {
+interface RecordingTexts {
+  introduction: string;
+  discountInquiry: string;
+  confirmation: string;
+  closing: string;
+}
+
+interface GeneratedUrls {
+  [key: string]: string; // Index signature
+}
+
+export async function generateStandardRecordings() {
+  const recordings: RecordingTexts = {
     introduction:
       "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?",
     discountInquiry:
@@ -164,7 +175,7 @@ async function generateStandardRecordings() {
     closing: "Thank you for your time. Have a great day.",
   };
 
-  const generatedUrls = {};
+  const generatedUrls: GeneratedUrls = {};
 
   for (const [key, text] of Object.entries(recordings)) {
     try {
