@@ -11,6 +11,7 @@ import {
 } from "./twilioService.js";
 import twilio from "twilio";
 import { EventEmitter } from "events";
+import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 const router = express.Router();
 const prisma = new PrismaClient();
 const upload = multer({
@@ -19,6 +20,25 @@ const upload = multer({
   },
 });
 const updateEmitter = new EventEmitter();
+
+// First validate environment variables
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+const region = process.env.AWS_REGION;
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+
+if (!accessKeyId || !secretAccessKey || !region || !BUCKET_NAME) {
+  throw new Error("Missing required AWS credentials in environment variables");
+}
+
+// Initialize S3 client with validated credentials
+const s3Client = new S3Client({
+  region,
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+});
 
 interface BusinessRow {
   name: string;
@@ -384,6 +404,32 @@ router.post("/generate-recordings", async (_req, res) => {
     console.error("Error generating recordings:", error);
     res.status(500).json({
       error: "Failed to generate recordings",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.get("/assets", async (_req, res) => {
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+    });
+
+    const response = await s3Client.send(command);
+
+    const assets =
+      response.Contents?.map((item) => ({
+        key: item.Key,
+        lastModified: item.LastModified,
+        url: `https://${BUCKET_NAME}.s3.amazonaws.com/${item.Key}`,
+        filename: item.Key,
+      })) || [];
+
+    res.json(assets);
+  } catch (error) {
+    console.error("Error fetching assets:", error);
+    res.status(500).json({
+      error: "Failed to fetch assets",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
