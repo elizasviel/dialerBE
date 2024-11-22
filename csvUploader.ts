@@ -45,49 +45,6 @@ const validateRow = (row: BusinessRow): string | null => {
   return null;
 };
 
-const analyzeSpeechResponse = (transcript: string) => {
-  // Normalize the transcript for easier matching
-  const normalizedText = transcript.toLowerCase().trim();
-
-  // Check for discount existence with more variations
-  const hasDiscount =
-    /\b(yes|yeah|yep|correct|we do|offer|have|gives?|provides?)\b/i.test(
-      normalizedText
-    ) &&
-    !/\b(no|don't|not|doesn't)\s+(?:offer|have|give|provide)\b/i.test(
-      normalizedText
-    );
-
-  // Enhanced percentage matching
-  const percentageMatches = [
-    // Match "X percent" or "X %" formats
-    ...normalizedText.matchAll(/(\d+)(?:\s*%|\s*percent(?:age)?)/g),
-    // Match "X dollars off" format
-    ...normalizedText.matchAll(/(\d+)(?:\s*dollars?\s+off)/g),
-    // Match written numbers (up to twenty) with percent
-    ...(normalizedText.match(/\b(ten|fifteen|twenty)\s*(?:percent|%)/i) || []),
-  ];
-
-  let discountAmount = null;
-  if (percentageMatches.length > 0) {
-    // Get the first match and convert written numbers if necessary
-    const match = percentageMatches[0][1];
-    const numberMap: Record<string, string> = {
-      ten: "10",
-      fifteen: "15",
-      twenty: "20",
-    };
-    discountAmount = numberMap[match.toLowerCase()] || match;
-    discountAmount += match.includes("dollar") ? " dollars off" : "%";
-  }
-
-  return {
-    hasDiscount,
-    discountAmount,
-    discountDetails: transcript, // Store the entire original transcript
-  };
-};
-
 const standardizePhoneNumber = (phone: string): string => {
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, "");
@@ -356,7 +313,13 @@ router.post("/call-handler", async (req: any, res: any) => {
         data: {
           hasDiscount: analysis.hasDiscount,
           discountAmount: analysis.discountAmount || null,
-          discountDetails: analysis.discountDetails || null,
+          discountDetails: analysis.discountDetails
+            ? `${
+                business.discountDetails
+                  ? business.discountDetails + "\n\n"
+                  : ""
+              }Transcript: ${analysis.discountDetails}`
+            : business.discountDetails,
           availabilityInfo: analysis.availabilityInfo || null,
           eligibilityInfo: analysis.eligibilityInfo || null,
           lastCalled: new Date(),

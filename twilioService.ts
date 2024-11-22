@@ -88,6 +88,9 @@ export async function handleCallResponse(
 
   return {
     twiml,
-    analysis: result.analysis,
+    analysis: {
+      ...result.analysis,
+      discountDetails: transcript,
+    },
   };
 }
