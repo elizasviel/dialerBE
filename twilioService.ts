@@ -152,3 +152,29 @@ async function generateAndStoreVoice(text: string): Promise<string> {
   const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 3600 });
   return url;
 }
+
+async function generateStandardRecordings() {
+  const recordings = {
+    introduction:
+      "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?",
+    discountInquiry:
+      "Do you offer a military discount, and if so, what is the percentage?",
+    confirmation:
+      "To confirm, you mentioned a {percentage} discount. We'll ensure it's accurately listed in our directory.",
+    closing: "Thank you for your time. Have a great day.",
+  };
+
+  const generatedUrls = {};
+
+  for (const [key, text] of Object.entries(recordings)) {
+    try {
+      const url = await generateAndStoreVoice(text);
+      generatedUrls[key] = url;
+      console.log(`Generated recording for ${key}`);
+    } catch (error) {
+      console.error(`Failed to generate recording for ${key}:`, error);
+    }
+  }
+
+  return generatedUrls;
+}

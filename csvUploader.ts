@@ -7,6 +7,7 @@ import {
   getTwilioAccountInfo,
   makeCall,
   handleCallResponse,
+  generateStandardRecordings,
 } from "./twilioService.js";
 import twilio from "twilio";
 import { EventEmitter } from "events";
@@ -308,7 +309,7 @@ router.post("/call-handler", async (req: any, res: any) => {
           callStatus = "completed";
       }
 
-      const updatedBusiness = await prisma.business.update({
+      await prisma.business.update({
         where: { id: business.id },
         data: {
           hasDiscount: analysis.hasDiscount,
@@ -326,9 +327,6 @@ router.post("/call-handler", async (req: any, res: any) => {
           callStatus,
         },
       });
-
-      // Emit the update event with the updated business data
-      updateEmitter.emit("update", updatedBusiness);
     }
 
     return res.type("text/xml").send(twiml.toString());
@@ -370,6 +368,22 @@ router.get("/twilio-info", async (_req, res) => {
     console.error("Error fetching Twilio info:", error);
     res.status(500).json({
       error: "Failed to fetch Twilio account info",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.post("/generate-recordings", async (_req, res) => {
+  try {
+    const recordings = await generateStandardRecordings();
+    res.json({
+      message: "Recordings generated successfully",
+      recordings,
+    });
+  } catch (error) {
+    console.error("Error generating recordings:", error);
+    res.status(500).json({
+      error: "Failed to generate recordings",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
