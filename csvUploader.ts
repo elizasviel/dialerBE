@@ -308,7 +308,7 @@ router.post("/call-handler", async (req: any, res: any) => {
           callStatus = "completed";
       }
 
-      await prisma.business.update({
+      const updatedBusiness = await prisma.business.update({
         where: { id: business.id },
         data: {
           hasDiscount: analysis.hasDiscount,
@@ -326,6 +326,9 @@ router.post("/call-handler", async (req: any, res: any) => {
           callStatus,
         },
       });
+
+      // Emit the update event with the updated business data
+      updateEmitter.emit("update", updatedBusiness);
     }
 
     return res.type("text/xml").send(twiml.toString());
