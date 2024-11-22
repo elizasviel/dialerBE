@@ -18,10 +18,10 @@ const client: Twilio = twilio(validAccountSid, validAuthToken);
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
     const twiml = new twilio.twiml.VoiceResponse();
-    twiml
-      .play(
-        "http://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3"
-      )
+    twiml.play(
+      "http://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3"
+    );
+    /*
       .gather({
         input: ["speech"],
         timeout: 5,
@@ -33,6 +33,7 @@ export async function makeCall(phoneNumber: string): Promise<string> {
       .say(
         "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?"
       );
+      */
 
     const call = await client.calls.create({
       twiml: twiml.toString(),
