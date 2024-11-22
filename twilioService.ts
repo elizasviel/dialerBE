@@ -39,10 +39,10 @@ const BUCKET_NAME = process.env.AWS_BUCKET_NAME as string;
 
 export async function makeCall(phoneNumber: string): Promise<string> {
   try {
-    const greeting =
-      "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?";
-
-    //const speechUrl = await generateAndStoreVoice(greeting);
+    // Generate fresh audio for this specific call
+    const introUrl = await generateAndStoreVoice(
+      "Hi, I'm calling on behalf of Valor, a military discount directory. We're creating a list to help service members and their families find military discounts. Could I confirm some quick details about any discount your business might offer?"
+    );
 
     const twiml = new twilio.twiml.VoiceResponse();
     twiml
@@ -54,9 +54,7 @@ export async function makeCall(phoneNumber: string): Promise<string> {
           "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
         method: "POST",
       })
-      .play(
-        "https://dialer0.s3.us-east-1.amazonaws.com/speech-1732250575331.mp3?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjECkaCXVzLWVhc3QtMSJHMEUCIHbmq3Wa5LBHFgsem9h2ogNFPBrvPXZZQCi9PHhTy3ooAiEA5OW01WmNX5mIl9gRHxVE2upYk%2BF4M20KfgT6kIhP2%2FIq0AMIwv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAAGgw5MTE0NDI0MzQzNDgiDPpNZhwgMre%2BA7zoziqkA4dcz2sXB3skv1Q4WFM4pGDp9E3rSKFjUp7gSLf8tKMUOrKHYl6JF4QjORhCa8lrFNdyakA7DFlOz0n6F1ZfJfgytyK4L4TEuFcLGhETAFG8%2BHb4D9XfBimawuChWlRCAXNPjOzUOb3%2FouIb1JJoHT2Y1mAtZnpBTjEj7GnwJ5KzmcIUbuPlIahzEzxpUVwEWmlzE1byqtWBP0YyKh6th6dSoaCE9zW7Byw0UdmuEceIZSPNcDJIDLh7I7TVb9eONCx9sOCeuEsBp9N0k98%2FqaCxKotYA9XWglbrFJONhkIG06ag0g9vshoSW0FxCAoizZ2TK8nBKYV8WcIpJSMP8sM6vXX1qVL%2FKHqipW9sjBm2NTiRQRLKKpFVIJos2spViAa1LRnsUKiG%2B%2FfAD17GCqKTxWJEnQpWUFvllQXG6aJRVZEdBho9tijvB6gI9wDBm9n%2FBe%2F5vYkPLCO0%2BsLlH7zk%2BzR0w0CFmAXzXS3mInENZY96EX6LtslVbpmSroLDsTW9b7dNnHoGqs6kWMKjxoMzZvqYAVvLjL7%2Fz7msmzzrUlarfjCs8IK6BjrkAvUxyW%2BavXTqEUxckWdMLbpv4AqrxjJ%2B2miXtADYh2bq06gWORguuLhePvTzXdEDCAZ0pwy3rHBxJ%2BTMNikh75gPeIa5BbxpAaRzt83pSo45LgsSS0jpRXntALHvbdnitJEcmRHY%2BJ4uuzYumVIrbXuyRoQIHyN%2BqKz%2BbfForLgKDGmI75FeKDo6Fu7aybTiYOFi0l49%2Fkjt7a0ntJ%2FhnpwWjQFmVjl%2B2F4YEBtSLM9jZRnzO%2FPer0SYNgbdwThOtI2fuIsqESO0WQkokD%2BAtmHytNPRx%2FaslCF9zuxbbeTs3xstOhkf5R4MbLgm0ZTwLdxd1MEN32xdezOjGrtL230i73KILtcGfWQ7EYM0NQIoliFKxEDUJ%2BUWLCHIQmQsLPjY0G85ezNULak9vY7bwXcQdl%2Fz8I9WPvInHOA3Jn1KwnmRNQ2KDab5OysO0VxjYDDlGumjBeC5j2DFAOSnQjL%2FtCcy&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA5INRT3EWOS2A6ECM%2F20241122%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241122T170154Z&X-Amz-Expires=43200&X-Amz-SignedHeaders=host&X-Amz-Signature=206caeeb11c6085a704dc07b4188632025574202dddb6137f3d7eb295c05433d"
-      );
+      .play(introUrl);
 
     const call = await client.calls.create({
       twiml: twiml.toString(),
