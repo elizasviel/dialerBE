@@ -6,6 +6,8 @@ CREATE TABLE "Business" (
     "hasDiscount" BOOLEAN NOT NULL DEFAULT false,
     "discountAmount" TEXT,
     "discountDetails" TEXT,
+    "availabilityInfo" TEXT,
+    "eligibilityInfo" TEXT,
     "lastCalled" TIMESTAMP(3),
     "callStatus" TEXT,
 
