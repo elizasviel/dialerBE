@@ -125,7 +125,7 @@ export async function handleCallResponse(
   };
 }
 
-async function generateAndStoreVoice(text: string): Promise<string> {
+export async function generateAndStoreVoice(text: string): Promise<string> {
   const mp3 = await openai.audio.speech.create({
     model: "tts-1",
     voice: "alloy",

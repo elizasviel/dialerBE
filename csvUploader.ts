@@ -8,6 +8,7 @@ import {
   makeCall,
   handleCallResponse,
   generateStandardRecordings,
+  generateAndStoreVoice,
 } from "./twilioService.js";
 import twilio from "twilio";
 import { EventEmitter } from "events";
@@ -264,12 +265,18 @@ router.post("/call-handler", async (req: any, res: any) => {
   if (!speechResult && !isFirstInteraction) {
     const twiml = new twilio.twiml.VoiceResponse();
     if (numAttempts >= 2) {
-      twiml.say(
+      // Generate fresh audio URL for the error message
+      const audioUrl = await generateAndStoreVoice(
         "I apologize, but I'm having trouble understanding. Thank you for your time."
       );
+      twiml.play(audioUrl);
       twiml.hangup();
       return res.type("text/xml").send(twiml.toString());
     }
+
+    const retryAudioUrl = await generateAndStoreVoice(
+      "I'm sorry, I didn't catch that. Could you please repeat your response?"
+    );
     twiml
       .gather({
         input: ["speech"],
@@ -280,86 +287,47 @@ router.post("/call-handler", async (req: any, res: any) => {
         }`,
         method: "POST",
       })
-      .say(
-        "I'm sorry, I didn't catch that. Could you please repeat your response?"
-      );
+      .play(retryAudioUrl);
     return res.type("text/xml").send(twiml.toString());
   }
 
   try {
-    const business = await prisma.business.findFirst({
-      where: {
-        phone: standardizePhoneNumber(phoneNumber),
-      },
-    });
-
-    if (!business) {
-      console.error(`No business found with phone number: ${phoneNumber}`);
-      const twiml = new twilio.twiml.VoiceResponse();
-      twiml.say("Thank you for your time. Goodbye!");
-      twiml.hangup();
-      return res.type("text/xml").send(twiml.toString());
-    }
-
-    if (isFirstInteraction) {
-      await prisma.business.update({
-        where: { id: business.id },
-        data: {
-          callStatus: "in-progress",
-        },
-      });
-    }
-
     const { twiml, analysis } = await handleCallResponse(
       speechResult || "",
       isFirstInteraction
     );
 
-    if (analysis.shouldEndCall) {
-      let callStatus: string;
-      switch (analysis.endReason) {
-        case "got_complete_info":
-        case "no_discount_confirmed":
-          callStatus = "completed";
-          break;
-        case "not_interested":
-          callStatus = "rejected";
-          break;
-        case "max_attempts_reached":
-        case "unclear_response":
-          callStatus = "failed";
-          break;
-        default:
-          callStatus = "completed";
+    // Generate fresh audio URL for the response
+    const responseText = twiml.toString().match(/<Say>(.*?)<\/Say>/)?.[1];
+    if (responseText) {
+      const audioUrl = await generateAndStoreVoice(responseText);
+      const newTwiml = new twilio.twiml.VoiceResponse();
+      if (analysis.shouldEndCall) {
+        newTwiml.play(audioUrl);
+        newTwiml.hangup();
+      } else {
+        newTwiml
+          .gather({
+            input: ["speech"],
+            timeout: 5,
+            speechTimeout: "auto",
+            action:
+              "https://dialerbackend-f07ad367d080.herokuapp.com/api/call-handler",
+            method: "POST",
+          })
+          .play(audioUrl);
       }
-
-      await prisma.business.update({
-        where: { id: business.id },
-        data: {
-          hasDiscount: analysis.hasDiscount,
-          discountAmount: analysis.discountAmount || null,
-          discountDetails: analysis.discountDetails
-            ? `${
-                business.discountDetails
-                  ? business.discountDetails + "\n\n"
-                  : ""
-              }Transcript: ${analysis.discountDetails}`
-            : business.discountDetails,
-          availabilityInfo: analysis.availabilityInfo || null,
-          eligibilityInfo: analysis.eligibilityInfo || null,
-          lastCalled: new Date(),
-          callStatus,
-        },
-      });
+      return res.type("text/xml").send(newTwiml.toString());
     }
 
     return res.type("text/xml").send(twiml.toString());
   } catch (error) {
     console.error("Error handling call:", error);
-    const twiml = new twilio.twiml.VoiceResponse();
-    twiml.say(
+    const errorAudioUrl = await generateAndStoreVoice(
       "I apologize for the technical difficulty. Thank you for your time."
     );
+    const twiml = new twilio.twiml.VoiceResponse();
+    twiml.play(errorAudioUrl);
     twiml.hangup();
     return res.type("text/xml").send(twiml.toString());
   }
